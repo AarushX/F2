@@ -1,15 +1,20 @@
-import {BrowserWindow} from 'electron';
+import {BrowserWindow, ipcMain} from 'electron';
 import {join} from 'path';
 import {URL} from 'url';
 
 async function createWindow() {
   const browserWindow = new BrowserWindow({
-    show: false, // Use 'ready-to-show' event to show window
-    webPreferences: {
-      nativeWindowOpen: true,
-      webviewTag: false, // The webview tag is not recommended. Consider alternatives like iframe or Electron's BrowserView. https://www.electronjs.org/docs/latest/api/webview-tag#warning
-      preload: join(__dirname, '../../preload/dist/index.cjs'),
-    },
+    titleBarStyle: 'hidden',
+      resizable: false,
+      frame: false,
+      transparent: true,
+      width: 1500, height: 1000, 
+      show:false,
+      autoHideMenuBar: true,
+      webPreferences: {
+          preload: join(__dirname, '../../preload/dist/index.cjs'),
+          nodeIntegration: true,
+      },
   });
 
   /**
@@ -19,6 +24,15 @@ async function createWindow() {
    * @see https://github.com/electron/electron/issues/25012
    */
   browserWindow.on('ready-to-show', () => {
+    ipcMain.on("titlebar", (event, arg) => {
+      if(arg === "destroy") browserWindow.destroy();
+      else if(arg === "resize") {
+          if(browserWindow.isMaximized()) browserWindow.unmaximize();
+          else browserWindow.maximize();
+      }
+    })
+    console.log("Window Loaded")
+
     browserWindow?.show();
 
     if (import.meta.env.DEV) {

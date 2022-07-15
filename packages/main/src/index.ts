@@ -1,8 +1,16 @@
-import {app} from 'electron';
-import './security-restrictions';
+const { app, ipcMain } = require("electron")
+const ngrok = require('ngrok');
 import {restoreOrCreateWindow} from '/@/mainWindow';
 
-
+const awaitUrl = new Promise(async (resolve, reject) => {
+  let urlServer = await ngrok.connect({   
+      proto: 'tcp', 
+      addr: 25565, 
+      authtoken: "1r7Om4dKZGppn414jclOabclLsV_5MfjTVsiTBXmwQqZp7QBK" 
+  })
+  if (urlServer) return resolve(urlServer)
+  else return reject("urlServer fetch rejected")
+})
 /**
  * Prevent multiple instances
  */
@@ -12,12 +20,6 @@ if (!isSingleInstance) {
   process.exit(0);
 }
 app.on('second-instance', restoreOrCreateWindow);
-
-
-/**
- * Disable Hardware Acceleration for more power-save
- */
-app.disableHardwareAcceleration();
 
 /**
  * Shout down background process if all windows was closed
@@ -41,24 +43,6 @@ app.whenReady()
   .then(restoreOrCreateWindow)
   .catch((e) => console.error('Failed create window:', e));
 
-
-/**
- * Install Vue.js or some other devtools in development mode only
- */
-// if (import.meta.env.DEV) {
-//   app.whenReady()
-//     .then(() => import('electron-devtools-installer'))
-//     .then(({default: installExtension, VUEJS3_DEVTOOLS}) => installExtension(VUEJS3_DEVTOOLS, {
-//       loadExtensionOptions: {
-//         allowFileAccess: true,
-//       },
-//     }))
-//     .catch(e => console.error('Failed install extension:', e));
-// }
-
-/**
- * Check new app version in production mode only
- */
 if (import.meta.env.PROD) {
   app.whenReady()
     .then(() => import('electron-updater'))
@@ -66,3 +50,10 @@ if (import.meta.env.PROD) {
     .catch((e) => console.error('Failed check updates:', e));
 }
 
+// Handlers
+ipcMain.handle("startServerV2", async () => {
+  return await awaitUrl
+}) 
+ipcMain.handle("getDevmode", () => {
+  return process.env.IS_DEV === 'true';
+}) 
